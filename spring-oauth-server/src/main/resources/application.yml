@@ -1,0 +1,116 @@
+info:
+  # 此配置项需要在编译打包时替换占位符，所以不能放到配置中心。此配置项可从bootstrap.yml中移除。
+  version: @project.version@
+spring:
+  application:
+    name: @project.artifactId@
+  datasource:
+    # datasource名，可用于嵌入式数据库名或hikari.pool-name，可选配置
+    name: auth
+    url: jdbc:mysql://localhost:3306/oauth2
+    username: root
+    password: root
+    hikari:
+      # 不建议配置此配置项，当驱动不支持JDBC4时，HikariCP会打印错误日志，当有错误日志时才需要配置此配置项
+      #connection-test-query:
+      # 从连接池等待获取连接的最大时间，默认30s，不能小于250ms
+      connection-timeout: 30000
+      # 默认值10m，配置0意味着永远不会从pool中删除
+      idle-timeout: 600000
+      # 连接的最大存活时间，默认30m，0意味着无限存活
+      max-lifetime: 1800000
+      # 默认值10
+      maximum-pool-size: 50
+      # 默认值为maxPoolSize。推荐配置成maxPoolSize值，性能最大化
+      #minimum-idle:
+      # 默认值false。暴露HikariConfigMXBean/HikariPoolMXBean，用于get/set配置项
+      register-mbeans: true
+      # 默认配置值依据驱动
+      #transaction-isolation:
+      data-source-properties:
+        serverTimezone: UTC
+        characterEncoding: utf-8
+        autoReconnect: true
+        zeroDateTimeBehavior: convertToNull
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        #useServerPrepStmts: true
+        #useLocalSessionState: true
+        #rewriteBatchedStatements: true
+        #cacheResultSetMetadata: true
+        #cacheServerConfiguration: true
+        #elideSetAutoCommits: true
+        #maintainTimeStats: false
+server:
+  port: 7500
+  # 如果Server和Client都部署在本地，共同使用localhost，context-path都是 '/'，此时他们会共用一个cookie，导致丢失之前的state值而授权失败。
+  # 或者直接使用不同的domain。参考AuthorizationCodeAccessTokenProvider.getParametersForTokenRequest()方法
+  #servlet.context-path: /oauth
+logging:
+  level:
+    root: info
+    org.springframework.security: debug
+management:
+  endpoint:
+    health:
+      show-details: when_authorized
+  endpoints:
+    web:
+      exposure:
+        # 测试使用 - 开放所有端口
+        include: "*"
+security:
+  # 定义角色的继承关系
+  role-hierarchy: |
+    ROLE_SYS_ADMIN > ROLE_ADMIN
+    ROLE_ADMIN > ROLE_USER
+  oauth2:
+    redirect-resolver:
+      # 自定义配置项：方便本地调试，配置的registered-redirect-uri和requested-redirect-uri进行比较时忽略端口号
+      match-ports: false
+      # 自定义配置项：配置的registered-redirect-uri和requested-redirect-uri进行比较时，匹配registered-redirect-uri的子域名
+      match-subdomains: true
+    client:
+      client-id: oauth-common-client
+      client-secret: "{bcrypt}$2a$10$xS4Hr6eaA1zwpL5I49fjvuoyUQSRfOvYpdw48os5zoT6OdPpfvDC6"
+      # 被限制访问的resource-id，不配则没有限制
+      #resource-ids:
+      scope: TEST
+      # 至少需要定义一个redirect-uri，否则授权失败。如果match-ports: false，则此处配置可忽略端口号
+      registered-redirect-uri:
+      - http://localhost/login
+      # true: 所有scope都自动同意授权，不需要用户在授权页面操作。也可配置成正则表达式。参考BaseClientDetails.isAutoApprove()方法
+      auto-approve-scopes: true
+      # access-token有效时间，DefaultTokenServices默认值: 60 * 60 * 12 = 12h
+      access-token-validity-seconds: 600
+      # refresh-token有效时间，DefaultTokenServices默认值: 60 * 60 * 24 * 30 = 30d
+      refresh-token-validity-seconds: 3600
+    authorization:
+      # 允许通过URL地址访问公钥
+      token-key-access: "permitAll"
+      jwt:
+        key-value: |
+          -----BEGIN RSA PRIVATE KEY-----
+          MIICXAIBAAKBgQDGTdwymDuETEvshW9HIiUvLwMXWXXAebrh4IznaaLLMd0aUGNy
+          iMHkf8YG99g/hJ5hVc9dGliDsQO4+Fmtfp/fwTY27uCTelb9iVz3zloEICdG1Fk2
+          a17SI6qvlUInaMGbIdq+8aPg/19edx3qoGamct6P/TaZ1pQEluaOAxGqQQIDAQAB
+          AoGAX6r2XU5GAEhSpJOnIJkfeUjj4+LbxPS1LP2I3KeAyyiOM4CuyXWinNrrrTbq
+          k5ImWmzsck0ggL/oPNdLZEDfXVdfDiMJT4dJm+NJTZNzkRUlaiyZ+BFJpMef32LW
+          3GwlqTZQCF0UmaqWV4vCXpfTRq7k2zAnwLPGogGEgtmxdVUCQQD836YNLEsGYH1n
+          CIKAKcfdRn4hpI/wioGISTdxQfh/wYeqeLI+6vivpCn6vcAUtNjylcl5D+SHxzz9
+          3y5i6O1bAkEAyMF/ancryw1ZPMXbR6cuylGzbWcuh7SuAK0HklXWnQCEueOYPUbj
+          inVFW+ZOCnwwYRMNQkJPzwtOR9IZ2ldNkwJAZfTmxrjtJw0QgtJzi6lM5HLfuEDZ
+          qGqv/3tF12x5/UjSonE3rRagXnEaW/bV04N3VZf/O8iko/o5JUMvOMIhsQJAAszA
+          DCoRUEmlXvWbc0pfmq69A9+WhIn+iz/ehSnxTks9jqIf82rTrZCpIPj7SaYlvpTX
+          cH8gQdD0jIffmG3zRQJBAJaF67Tj76sQfgJeDyuu58JJeaSZkbyJUP7zH2DupX1H
+          vbWltSAEcVquLS4f9hJirQYGi32wzTdzcYZiU5Fx8q8=
+          -----END RSA PRIVATE KEY-----
+        # 借用key-alias存储公钥
+        key-alias: |
+          -----BEGIN PUBLIC KEY-----
+          MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDGTdwymDuETEvshW9HIiUvLwMX
+          WXXAebrh4IznaaLLMd0aUGNyiMHkf8YG99g/hJ5hVc9dGliDsQO4+Fmtfp/fwTY2
+          7uCTelb9iVz3zloEICdG1Fk2a17SI6qvlUInaMGbIdq+8aPg/19edx3qoGamct6P
+          /TaZ1pQEluaOAxGqQQIDAQAB
+          -----END PUBLIC KEY-----

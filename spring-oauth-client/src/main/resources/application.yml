@@ -1,0 +1,42 @@
+info:
+  # 此配置项需要在编译打包时替换占位符，所以不能放到配置中心。此配置项可从bootstrap.yml中移除。
+  version: @project.version@
+spring:
+  application:
+    name: @project.artifactId@
+  http:
+    encoding.force: true
+server:
+  port: 7520
+  error:
+    include-exception: true
+    include-stacktrace: on_trace_param
+logging:
+  level:
+    root: info
+    org.springframework.security: debug
+management:
+  endpoint:
+    health:
+      show-details: when_authorized
+  endpoints:
+    web:
+      exposure:
+        # 测试使用 - 开放所有端口
+        include: "*"
+security:
+  oauth2:
+    client:
+      clientId: oauth-common-client
+      clientSecret: 123456
+      # client获取accessToken URI
+      accessTokenUri: http://oauth.easycodebox.local:7500/oauth/token
+      # 用户授权URI
+      userAuthorizationUri: http://oauth.easycodebox.local:7500/oauth/authorize
+      # 是否使用当前请求的uri最为redirect-uri，如果开启则优先于pre-established-redirect-uri。默认开启
+      use-current-uri: false
+      # 预定义redirect-uri
+      pre-established-redirect-uri: "http://localhost:${server.port}/login"
+    resource:
+      jwt:
+        key-uri: http://oauth.easycodebox.local:7500/oauth/token_key
